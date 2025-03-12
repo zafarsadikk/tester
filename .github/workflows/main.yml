@@ -1,0 +1,70 @@
+name: Setup Windows Runner with Python and RustDesk
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-windows:
+    runs-on: windows-latest
+    steps:
+
+      - name: Install Python 3.10
+        shell: pwsh
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe" -OutFile "$env:TEMP\python-installer.exe"
+          Start-Process -FilePath "$env:TEMP\python-installer.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
+          Write-Host "Python version:"
+          python --version
+
+      - name: Download & Extract RustDesk (Portable)
+        shell: pwsh
+        run: |
+          $RustDeskUrl     = "https://github.com/rustdesk/rustdesk/releases/download/1.3.8/rustdesk-1.3.8-x86_64-pc-windows-msvc.zip"
+          $RustDeskZip     = "$env:TEMP\rustdesk.zip"
+          $RustDeskExtract = "$env:TEMP\rustdesk"
+          
+          Write-Host "Downloading RustDesk portable ZIP..."
+          Invoke-WebRequest -Uri $RustDeskUrl -OutFile $RustDeskZip
+          
+          Write-Host "Extracting RustDesk..."
+          Expand-Archive -Path $RustDeskZip -DestinationPath $RustDeskExtract -Force
+
+      - name: Configure & Start RustDesk
+        shell: pwsh
+        run: |
+          # Create RustDesk config folder
+          New-Item -ItemType Directory -Path "$env:APPDATA\RustDesk" -Force | Out-Null
+
+          # Write a single-line string for rustdesk.toml
+          # This sets the password to "jafar"
+          Set-Content -Path "$env:APPDATA\RustDesk\rustdesk.toml" -Value "[password]`nvalue = \"jafar\""
+
+          Write-Host "Starting RustDesk..."
+          Start-Process -FilePath "$RustDeskExtract\rustdesk.exe"
+
+          # Wait 60 seconds to allow RustDesk time to start & (hopefully) generate an ID
+          Start-Sleep -Seconds 60
+
+          # Check if RustDesk is still running
+          $process = Get-Process rustdesk -ErrorAction SilentlyContinue
+          if ($process) {
+            Write-Host "RustDesk is running (PID $($process.Id))."
+          } else {
+            Write-Host "RustDesk process not found. It may have exited or crashed."
+          }
+
+      - name: Fetch RustDesk ID
+        shell: pwsh
+        run: |
+          $IDPath = "$env:APPDATA\RustDesk\id"
+          if (Test-Path $IDPath) {
+            $ID = Get-Content $IDPath
+            Write-Host "🚀 RustDesk ID: $ID"
+          } else {
+            Write-Host "⚠️ Could not find RustDesk ID at $IDPath."
+          }
+
+      - name: Keep Runner Alive for 30 Minutes
+        shell: pwsh
+        run: Start-Sleep -Seconds 1800
