@@ -1,7 +1,7 @@
 name: Setup Windows Runner with Python and RustDesk
 
 on:
-  workflow_dispatch:  # Allows manual trigger
+  workflow_dispatch:
 
 jobs:
   setup-windows:
@@ -16,11 +16,18 @@ jobs:
 
       - name: Install and Configure RustDesk
         run: |
-          $RustDeskUrl = "https://github.com/rustdesk/rustdesk/releases/download/1.2.3/rustdesk-1.2.3-x64.exe"
-          $RustDeskPath = "$env:TEMP\rustdesk.exe"
-          Invoke-WebRequest -Uri $RustDeskUrl -OutFile $RustDeskPath
-          Start-Process -FilePath $RustDeskPath -ArgumentList "/S" -Wait
-          Start-Process -FilePath "C:\Program Files\RustDesk\rustdesk.exe"
+          $RustDeskUrl = "https://github.com/rustdesk/rustdesk/releases/download/1.2.3/rustdesk-1.2.3-windows_x64-portable.zip"
+          $RustDeskZip = "$env:TEMP\rustdesk.zip"
+          $RustDeskExtractPath = "$env:TEMP\rustdesk"
+
+          # Download RustDesk
+          Invoke-WebRequest -Uri $RustDeskUrl -OutFile $RustDeskZip
+
+          # Extract the Zip File
+          Expand-Archive -Path $RustDeskZip -DestinationPath $RustDeskExtractPath -Force
+
+          # Run RustDesk in the background
+          Start-Process -FilePath "$RustDeskExtractPath\rustdesk.exe"
         shell: pwsh
 
       - name: Fetch RustDesk ID
@@ -33,4 +40,8 @@ jobs:
           } else {
             Write-Output "⚠️ RustDesk ID not found. Check manually."
           }
+        shell: pwsh
+
+      - name: Keep Runner Alive for 60 Minutes
+        run: Start-Sleep -Seconds 3600
         shell: pwsh
