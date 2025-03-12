@@ -28,25 +28,26 @@ jobs:
 
           Write-Host "Extracting RustDesk..."
           Expand-Archive -Path $RustDeskZip -DestinationPath $RustDeskExtractPath -Force
-
+          
+          # Create the expected config directory so RustDesk can write its ID there
+          New-Item -ItemType Directory -Path "$env:APPDATA\RustDesk" -Force | Out-Null
+          
           Write-Host "Starting RustDesk..."
           Start-Process -FilePath "$RustDeskExtractPath\rustdesk.exe"
 
       - name: Fetch RustDesk ID
         shell: pwsh
         run: |
-          Write-Host "Waiting 10s for RustDesk to generate the ID..."
-          Start-Sleep -Seconds 10
+          Write-Host "Waiting 20s for RustDesk to generate the ID..."
+          Start-Sleep -Seconds 20
           $RustDeskIDPath = "$env:APPDATA\RustDesk\id"
-
           if (Test-Path $RustDeskIDPath) {
             $RustDeskID = Get-Content $RustDeskIDPath
             Write-Host "🚀 RustDesk ID: $RustDeskID"
           } else {
-            Write-Host "⚠️ RustDesk ID not found. Check manually."
+            Write-Host "⚠️ RustDesk ID not found at $RustDeskIDPath. Check manually."
           }
 
-      # Optional: Keep the runner alive for 30 minutes so you can connect
       - name: Keep Runner Alive for 30 Minutes
         shell: pwsh
         run: Start-Sleep -Seconds 1800
