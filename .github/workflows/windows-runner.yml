@@ -7,41 +7,46 @@ jobs:
   setup-windows:
     runs-on: windows-latest
     steps:
-
       - name: Install Python 3.10
+        shell: pwsh
         run: |
           Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe" -OutFile "$env:TEMP\python-installer.exe"
           Start-Process -FilePath "$env:TEMP\python-installer.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
+          Write-Host "Python version:"
           python --version
 
-      - name: Install and Configure RustDesk
+      - name: Install RustDesk (Portable)
+        shell: pwsh
         run: |
+          # Direct download link to RustDesk 1.2.3 portable ZIP
           $RustDeskUrl = "https://github.com/rustdesk/rustdesk/releases/download/1.2.3/rustdesk-1.2.3-windows_x64-portable.zip"
           $RustDeskZip = "$env:TEMP\rustdesk.zip"
           $RustDeskExtractPath = "$env:TEMP\rustdesk"
 
-          # Download RustDesk
+          Write-Host "Downloading RustDesk portable ZIP..."
           Invoke-WebRequest -Uri $RustDeskUrl -OutFile $RustDeskZip
 
-          # Extract the Zip File
+          Write-Host "Extracting RustDesk..."
           Expand-Archive -Path $RustDeskZip -DestinationPath $RustDeskExtractPath -Force
 
-          # Run RustDesk in the background
+          Write-Host "Starting RustDesk..."
           Start-Process -FilePath "$RustDeskExtractPath\rustdesk.exe"
-        shell: pwsh
 
       - name: Fetch RustDesk ID
+        shell: pwsh
         run: |
-          Start-Sleep -Seconds 10  # Give RustDesk time to generate the ID
+          Write-Host "Waiting 10s for RustDesk to generate the ID..."
+          Start-Sleep -Seconds 10
           $RustDeskIDPath = "$env:APPDATA\RustDesk\id"
+
           if (Test-Path $RustDeskIDPath) {
             $RustDeskID = Get-Content $RustDeskIDPath
-            Write-Output "🚀 RustDesk ID: $RustDeskID"
+            Write-Host "🚀 RustDesk ID: $RustDeskID"
           } else {
-            Write-Output "⚠️ RustDesk ID not found. Check manually."
+            Write-Host "⚠️ RustDesk ID not found. Check manually."
           }
-        shell: pwsh
 
-      - name: Keep Runner Alive for 60 Minutes
-        run: Start-Sleep -Seconds 3600
+      # Optional: Keep the runner alive for 30 minutes so you can connect
+      - name: Keep Runner Alive for 30 Minutes
         shell: pwsh
+        run: Start-Sleep -Seconds 1800
