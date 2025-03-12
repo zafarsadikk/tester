@@ -18,7 +18,7 @@ jobs:
       - name: Install RustDesk (Portable)
         shell: pwsh
         run: |
-          # Direct download link to RustDesk 1.2.3 portable ZIP
+          # Use the correct portable ZIP asset for RustDesk 1.2.3
           $RustDeskUrl = "https://github.com/rustdesk/rustdesk/releases/download/1.2.3/rustdesk-1.2.3-windows_x64-portable.zip"
           $RustDeskZip = "$env:TEMP\rustdesk.zip"
           $RustDeskExtractPath = "$env:TEMP\rustdesk"
@@ -29,7 +29,7 @@ jobs:
           Write-Host "Extracting RustDesk..."
           Expand-Archive -Path $RustDeskZip -DestinationPath $RustDeskExtractPath -Force
           
-          # Ensure the expected config directory exists so RustDesk can write its ID there
+          # Ensure the config directory exists so RustDesk can write its ID
           New-Item -ItemType Directory -Path "$env:APPDATA\RustDesk" -Force | Out-Null
           
           Write-Host "Starting RustDesk..."
@@ -48,6 +48,7 @@ jobs:
             Write-Host "⚠️ RustDesk ID not found at $RustDeskIDPath. Check manually."
           }
 
+      # Optional: Keep the runner alive for 30 minutes so you can connect
       - name: Keep Runner Alive for 30 Minutes
         shell: pwsh
         run: Start-Sleep -Seconds 1800
