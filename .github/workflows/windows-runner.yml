@@ -1,0 +1,33 @@
+name: Setup Windows Runner with Python and RustDesk
+
+on:
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  setup-windows:
+    runs-on: windows-latest
+    steps:
+
+      - name: Install Python 3.10
+        run: |
+          Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe" -OutFile "$env:TEMP\python-installer.exe"
+          Start-Process -FilePath "$env:TEMP\python-installer.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
+          python --version
+
+      - name: Install and Configure RustDesk
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/rustdesk/rustdesk/releases/latest/download/rustdesk-1.2.3-x64.exe" -OutFile "$env:TEMP\rustdesk.exe"
+          Start-Process -FilePath "$env:TEMP\rustdesk.exe" -ArgumentList "/S" -Wait
+          Start-Process -FilePath "C:\Program Files\RustDesk\rustdesk.exe"
+        shell: pwsh
+
+      - name: Fetch RustDesk ID
+        run: |
+          Start-Sleep -Seconds 10  # Give RustDesk time to generate the ID
+          $RustDeskID = Get-Content "$env:APPDATA\RustDesk\id" -ErrorAction SilentlyContinue
+          if ($RustDeskID) {
+            Write-Output "🚀 RustDesk ID: $RustDeskID"
+          } else {
+            Write-Output "⚠️ RustDesk ID not found. Check manually."
+          }
+        shell: pwsh
