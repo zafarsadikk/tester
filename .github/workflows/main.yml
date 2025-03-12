@@ -1,0 +1,87 @@
+name: Setup Windows Runner with Python and RustDesk
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-windows:
+    runs-on: windows-latest
+    steps:
+
+      # 1. Install Python 3.10
+      - name: Install Python 3.10
+        shell: pwsh
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe" -OutFile "$env:TEMP\python-installer.exe"
+          Start-Process -FilePath "$env:TEMP\python-installer.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
+          Write-Host "Python version:"
+          python --version
+
+      # 2. Download & extract RustDesk 1.3.8 portable (64-bit)
+      - name: Download & Extract RustDesk (Portable)
+        shell: pwsh
+        run: |
+          $RustDeskUrl     = "https://github.com/rustdesk/rustdesk/releases/download/1.3.8/rustdesk-1.3.8-x86_64-pc-windows-msvc.zip"
+          $RustDeskZip     = "$env:TEMP\rustdesk.zip"
+          $RustDeskExtract = "$env:TEMP\rustdesk"
+          
+          Write-Host "Downloading RustDesk portable ZIP..."
+          Invoke-WebRequest -Uri $RustDeskUrl -OutFile $RustDeskZip -UseBasicParsing
+          
+          Write-Host "Extracting RustDesk..."
+          Expand-Archive -Path $RustDeskZip -DestinationPath $RustDeskExtract -Force
+
+      # 3. Optionally configure RustDesk with a password (e.g., "jafar"), then start it
+      - name: Configure & Start RustDesk
+        shell: pwsh
+        run: |
+          # Create RustDesk config folder
+          New-Item -ItemType Directory -Path "$env:APPDATA\RustDesk" -Force | Out-Null
+
+          # (Optional) Set a password in rustdesk.toml
+          # Remove or adjust if you don't want a password
+          Set-Content -Path "$env:APPDATA\RustDesk\rustdesk.toml" -Value @"
+[password]
+value = "jafar"
+"@
+
+          Write-Host "Starting RustDesk..."
+          Start-Process -FilePath "$env:TEMP\rustdesk\rustdesk.exe"
+
+          # Wait 60 seconds to allow RustDesk time to start & (hopefully) generate an ID
+          Start-Sleep -Seconds 60
+
+          # Check if RustDesk is still running
+          $process = Get-Process rustdesk -ErrorAction SilentlyContinue
+          if ($process) {
+            Write-Host "RustDesk is running (PID $($process.Id))."
+          } else {
+            Write-Host "RustDesk process not found. It may have exited or crashed."
+          }
+
+      # 4. Search for the RustDesk 'id' file
+      - name: Fetch RustDesk ID
+        shell: pwsh
+        run: |
+          $StandardIDPath = "$env:APPDATA\RustDesk\id"
+          if (Test-Path $StandardIDPath) {
+            $RustDeskID = Get-Content $StandardIDPath
+            Write-Host "🚀 RustDesk ID (standard path): $RustDeskID"
+          } else {
+            Write-Host "⚠️ No RustDesk ID at $StandardIDPath. Searching entire user profile..."
+
+            # Search for 'id' files anywhere in the runner's home directory
+            $found = gci $env:USERPROFILE -Filter "id" -Recurse -ErrorAction SilentlyContinue
+            if ($found) {
+              Write-Host "Found possible ID files:"
+              $found | ForEach-Object { Write-Host $_.FullName }
+            } else {
+              Write-Host "No 'id' file found in $env:USERPROFILE."
+            }
+          }
+
+      # 5. Keep the runner alive for 30 minutes so you can connect
+      - name: Keep Runner Alive for 30 Minutes
+        shell: pwsh
+        run: Start-Sleep -Seconds 1800
