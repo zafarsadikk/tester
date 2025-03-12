@@ -16,16 +16,19 @@ jobs:
 
       - name: Install and Configure RustDesk
         run: |
-          Invoke-WebRequest -Uri "https://github.com/rustdesk/rustdesk/releases/latest/download/rustdesk-1.2.3-x64.exe" -OutFile "$env:TEMP\rustdesk.exe"
-          Start-Process -FilePath "$env:TEMP\rustdesk.exe" -ArgumentList "/S" -Wait
+          $RustDeskUrl = "https://github.com/rustdesk/rustdesk/releases/download/1.2.3/rustdesk-1.2.3-x64.exe"
+          $RustDeskPath = "$env:TEMP\rustdesk.exe"
+          Invoke-WebRequest -Uri $RustDeskUrl -OutFile $RustDeskPath
+          Start-Process -FilePath $RustDeskPath -ArgumentList "/S" -Wait
           Start-Process -FilePath "C:\Program Files\RustDesk\rustdesk.exe"
         shell: pwsh
 
       - name: Fetch RustDesk ID
         run: |
           Start-Sleep -Seconds 10  # Give RustDesk time to generate the ID
-          $RustDeskID = Get-Content "$env:APPDATA\RustDesk\id" -ErrorAction SilentlyContinue
-          if ($RustDeskID) {
+          $RustDeskIDPath = "$env:APPDATA\RustDesk\id"
+          if (Test-Path $RustDeskIDPath) {
+            $RustDeskID = Get-Content $RustDeskIDPath
             Write-Output "🚀 RustDesk ID: $RustDeskID"
           } else {
             Write-Output "⚠️ RustDesk ID not found. Check manually."
