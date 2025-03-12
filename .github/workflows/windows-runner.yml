@@ -10,7 +10,7 @@ jobs:
       - name: Install Python 3.10
         shell: pwsh
         run: |
-          Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe" -OutFile "$env:TEMP\python-installer.exe"
+          Invoke-WebRequest -Uri "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe" -OutFile "$env:TEMP\python-installer.exe" -UseBasicParsing
           Start-Process -FilePath "$env:TEMP\python-installer.exe" -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1" -Wait
           Write-Host "Python version:"
           python --version
@@ -24,12 +24,12 @@ jobs:
           $RustDeskExtractPath = "$env:TEMP\rustdesk"
 
           Write-Host "Downloading RustDesk portable ZIP..."
-          Invoke-WebRequest -Uri $RustDeskUrl -OutFile $RustDeskZip
+          Invoke-WebRequest -Uri $RustDeskUrl -OutFile $RustDeskZip -UseBasicParsing
 
           Write-Host "Extracting RustDesk..."
           Expand-Archive -Path $RustDeskZip -DestinationPath $RustDeskExtractPath -Force
           
-          # Create the expected config directory so RustDesk can write its ID there
+          # Ensure the expected config directory exists so RustDesk can write its ID there
           New-Item -ItemType Directory -Path "$env:APPDATA\RustDesk" -Force | Out-Null
           
           Write-Host "Starting RustDesk..."
